@@ -18,7 +18,7 @@ with st.sidebar:
     • **Strategy Builder**: Drag-and-drop multi-leg payoffs (e.g., Iron Condor) with breakevens & metrics.
     • **Mispricing Checker**: Vol smile/term structure analysis for spotting edges in chains.
     
-    Open-source on GitHub: [github.com/mohamadmehraein/hedgeforge-hedging] | Follow on X: [@mohamadmehraein](https://x.com/mohamadmehraein) | LinkedIn: [MohammadMehdi Mehraein](https://www.linkedin.com/in/MohammadMehdiMehraein)
+    Open-source on GitHub: https://github.com/mohammadmehdimehraein/hedgeforge-hedging | Follow on X: [@mohamadmehraein](https://x.com/mohamadmehraein) | LinkedIn: [MohammadMehdi Mehraein](https://www.linkedin.com/in/MohammadMehdiMehraein)
     
     Educational only – not financial advice. Inspired by my studies in financial markets and blockchain!
     """)
