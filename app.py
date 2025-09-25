@@ -7,6 +7,12 @@ import yfinance as yf
 from datetime import datetime, timezone
 import altair as alt
 
+# App config - Must be the first Streamlit command
+st.set_page_config(page_title="HedgeForge — Delta/Gamma Hedging Simulator", layout="wide")
+
+st.title("HedgeForge — Delta/Gamma Hedging Simulator")
+st.caption("Educational only — not investment advice.")
+
 # Sidebar for About HedgeForge
 with st.sidebar:
     st.header("About HedgeForge")
@@ -28,6 +34,7 @@ with st.sidebar:
     <a href="https://x.com/mohamadmehraein"><img src="https://abs.twimg.com/responsive-web/client-web/icon-ios.8f5a1a4f.png" width="20" height="20" alt="X/Twitter"> X/Twitter</a> | 
     <a href="https://www.linkedin.com/in/MohammadMehdiMehraein"><img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" width="20" height="20" alt="LinkedIn"> LinkedIn</a>
     """, unsafe_allow_html=True)
+
 # Initialize session state for theme
 if 'theme' not in st.session_state:
     st.session_state.theme = 'light'
@@ -40,7 +47,7 @@ def get_css(theme):
     if theme == 'dark':
         return f"""
         <style>
-            /* بدنه اصلی */
+            /* Main body */
             .reportview-container {{
                 {common_transitions}
                 background: #000000 !important;
@@ -52,24 +59,24 @@ def get_css(theme):
                 color: white !important;
                 font-family: 'Roboto', sans-serif;
             }}
-            /* ورودی‌ها (خاکستری تیره) */
+            /* Inputs (dark gray) */
             .stNumberInput input, .stTextInput input, .stSelectbox select, .stRadio > div {{
                 {common_transitions}
                 background-color: #333333 !important;
                 color: white !important;
                 border: 1px solid #555 !important;
             }}
-            /* دکمه‌ها (قرمز) */
+            /* Buttons (red) */
             .stButton > button {{
                 background-color: red !important;
                 color: white !important;
                 border: none !important;
             }}
-            /* اسلایدرها و رادیوها با اکسنت قرمز */
+            /* Sliders and radio with red accent */
             .stSlider .st-ck, .stRadio > label > div {{
                 accent-color: red !important;
             }}
-            /* اکسپندرها، متریک‌ها، جدول‌ها با زمینه سیاه/خاکستری تیره */
+            /* Expanders, metrics, tables with black/dark gray background */
             .stExpander, .stMetric, .stDataFrame, .stTable {{
                 {common_transitions}
                 background-color: #111111 !important;
@@ -79,7 +86,7 @@ def get_css(theme):
                 {common_transitions}
                 background-color: #222222 !important;
             }}
-            /* چارت‌ها: زمینه سیاه، لیبل سفید، خطوط آبی، grid قرمز */
+            /* Charts: black background, white labels, blue lines, red grid */
             .vega-lite {{
                 {common_transitions}
                 background: #000000 !important;
@@ -98,7 +105,7 @@ def get_css(theme):
     else:  # light theme
         return f"""
         <style>
-            /* بدنه اصلی */
+            /* Main body */
             .reportview-container {{
                 {common_transitions}
                 background: white !important;
@@ -110,24 +117,24 @@ def get_css(theme):
                 color: black !important;
                 font-family: 'Roboto', sans-serif;
             }}
-            /* ورودی‌ها (خاکستری روشن) */
+            /* Inputs (light gray) */
             .stNumberInput input, .stTextInput input, .stSelectbox select, .stRadio > div {{
                 {common_transitions}
-                background-color: #f0f0f0 !important;  /* خاکستری روشن */
+                background-color: #f0f0f0 !important;  /* light gray */
                 color: black !important;
                 border: 1px solid #ccc !important;
             }}
-            /* دکمه‌ها (قرمز) */
+            /* Buttons (red) */
             .stButton > button {{
                 background-color: red !important;
                 color: white !important;
                 border: none !important;
             }}
-            /* اسلایدرها و رادیوها با اکسنت قرمز */
+            /* Sliders and radio with red accent */
             .stSlider .st-ck, .stRadio > label > div {{
                 accent-color: red !important;
             }}
-            /* اکسپندرها، متریک‌ها، جدول‌ها با زمینه سفید/خاکستری روشن */
+            /* Expanders, metrics, tables with white/light gray background */
             .stExpander, .stMetric, .stDataFrame, .stTable {{
                 {common_transitions}
                 background-color: white !important;
@@ -135,9 +142,9 @@ def get_css(theme):
             }}
             .stExpander > div {{
                 {common_transitions}
-                background-color: #fafafa !important;  /* خاکستری خیلی روشن */
+                background-color: #fafafa !important;  /* very light gray */
             }}
-            /* چارت‌ها: زمینه سفید، لیبل سیاه، خطوط آبی، grid قرمز */
+            /* Charts: white background, black labels, blue lines, red grid */
             .vega-lite {{
                 {common_transitions}
                 background: white !important;
@@ -221,29 +228,20 @@ def get_deribit_option_chain(currency: str, expiry: str):
         return pd.DataFrame(chain)
     return pd.DataFrame()
 
-# ---- helper: turn an expiry date into year fraction (no timezone bugs)
+# Helper: turn an expiry date into year fraction (no timezone bugs)
 def years_to_expiry(expiry_date):
     exp_date = pd.Timestamp(expiry_date).date()
     today_utc = datetime.now(timezone.utc).date()
     days = max((exp_date - today_utc).days, 1)
     return days / 365.0
 
-# ------------------------------------------------------------
-# App config
-# ------------------------------------------------------------
-st.set_page_config(page_title="HedgeForge — Delta/Gamma Hedging Simulator", layout="wide")
-st.title("HedgeForge — Delta/Gamma Hedging Simulator")
-st.caption("Educational only — not investment advice.")
-
-# ------------------------------------------------------------
-# Black–Scholes helpers
-# ------------------------------------------------------------
+# Black-Scholes helpers
 def _guard_T(T: float) -> float:
     """Numerical guard to avoid division by zero or sqrt(0)."""
     return max(float(T), 1e-9)
 
 def d1(S: float, K: float, r: float, sigma: float, T: float) -> float:
-    """d1 term for Black–Scholes."""
+    """d1 term for Black-Scholes."""
     T = _guard_T(T)
     return (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
 
@@ -253,7 +251,7 @@ def d2(d1_: float, sigma: float, T: float) -> float:
     return d1_ - sigma * np.sqrt(T)
 
 def bs_price(S: float, K: float, r: float, sigma: float, T: float, typ: str = "Call") -> float:
-    """Black–Scholes price for European Call/Put (no dividends)."""
+    """Black-Scholes price for European Call/Put (no dividends)."""
     d1_ = d1(S, K, r, sigma, T)
     d2_ = d2(d1_, sigma, T)
     if typ == "Call":
@@ -262,20 +260,18 @@ def bs_price(S: float, K: float, r: float, sigma: float, T: float, typ: str = "C
         return K * np.exp(-r * T) * norm.cdf(-d2_) - S * norm.cdf(-d1_)
 
 def bs_delta(S: float, K: float, r: float, sigma: float, T: float, typ: str = "Call") -> float:
-    """Spot Delta under Black–Scholes."""
+    """Spot Delta under Black-Scholes."""
     d1_ = d1(S, K, r, sigma, T)
     return norm.cdf(d1_) if typ == "Call" else norm.cdf(d1_) - 1.0
 
 def bs_gamma(S: float, K: float, r: float, sigma: float, T: float) -> float:
-    """Spot Gamma (same for call/put) under Black–Scholes."""
+    """Spot Gamma (same for call/put) under Black-Scholes."""
     T = _guard_T(T)
     d1_ = d1(S, K, r, sigma, T)
     denom = max(S * sigma * np.sqrt(T), 1e-12)
     return np.exp(-0.5 * d1_**2) / (np.sqrt(2.0 * np.pi) * denom)
 
-# ------------------------------------------------------------
 # UI — option parameters
-# ------------------------------------------------------------
 col1, col2 = st.columns(2)
 with col1:
     S0 = st.number_input("Underlying price (S₀)", value=30000.0, step=100.0, min_value=1.0)
@@ -579,9 +575,7 @@ def run_delta_hedge_on_uploaded(
     )
     return out
 
-# ------------------------------------------------------------
 # Yahoo Finance fetch utility
-# ------------------------------------------------------------
 def fetch_yf_prices(ticker: str, period: str, target_step: str) -> pd.DataFrame:
     """
     Download prices from Yahoo Finance and return a DataFrame with columns: date, close.
@@ -619,9 +613,7 @@ def fetch_yf_prices(ticker: str, period: str, target_step: str) -> pd.DataFrame:
 
     return df[["date", "close"]]
 
-# ------------------------------------------------------------
 # Run
-# ------------------------------------------------------------
 if run:
     with st.spinner("Running simulation..."):
         if src == "Simulate GBM":
@@ -821,7 +813,8 @@ if run:
                 file_name=f"hedge_results_{ticker.replace('-', '')}.csv",
                 mime="text/csv",
             )
-# ===================== Strategy Builder (Payoff at Expiry) =====================
+
+# Strategy Builder (Payoff at Expiry)
 def render_strategy_builder():
     """Interactive option strategy payoff builder (at expiry)."""
     st.markdown("---")
@@ -1041,9 +1034,7 @@ def render_strategy_builder():
 st.markdown("---")
 render_strategy_builder()
 
-# =========================
 # Phase 2: Mispricing Checker (beta)
-# =========================
 def render_mispricing_checker():
     """Mispricing checker."""
     import datetime as _dt
